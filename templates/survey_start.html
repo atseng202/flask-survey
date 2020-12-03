@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
 
-  <h1> Survey Title Should Go Here</h1>
+  <h1> {{ title }}</h1>
   <p>
-    Survey Instructions Should Go Here
+    {{ instructions }}
   </p>
 
-  <form action="/begin" method="POST">
+  <form action="/questions/0" method="POST">
     <button>Start!</button>
   </form>
 
