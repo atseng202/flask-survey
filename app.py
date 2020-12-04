@@ -8,6 +8,7 @@ app.config["DEBUG_TB_INTERCEPT_REDIRECTS"] = False
 
 debug = DebugToolbarExtension(app)
 
+# Will replace with session
 responses = []
 
 
@@ -16,37 +17,61 @@ def show_index():
     """Shows the user the title of survey,
     instructions, and button to start survey"""
 
+    session["responses"] = []
+    session["answered"] = []
+
     return render_template(
-        "survey_start.html",
-        title=survey.title,
-        instructions=survey.instructions
+        "survey_start.html", title=survey.title, instructions=survey.instructions
     )
 
 
-@app.route("/questions/<q_id>")
+@app.route("/questions/<int:q_id>")
 def show_question(q_id):
     """Shows a question in the survery
-    for a given question id number. """
-    q = survey.questions[int(q_id)]
-    return render_template("question.html",
-                           q_id=q_id,
-                           question=q.question,
-                           choices=q.choices)
+    for a given question id number."""
+
+    if len(session["answered"]) == 0:
+        q = survey.questions[0]
+        return render_template(
+            "question.html", q_id=0, question=q.question, choices=q.choices
+        )
+
+    if q_id - 1 in session["answered"] and q_id not in session["answered"]:
+        q = survey.questions[q_id]
+        return render_template(
+            "question.html", q_id=q_id, question=q.question, choices=q.choices
+        )
+    else:
+        # check if the last question has been answered or is the last survey question
+        last_q_id = session["answered"][-1]
+        if last_q_id >= len(survey.questions) - 1 and last_q_id in session["answered"]:
+            return redirect("/thankyou")
+        else:
+            q = survey.questions[last_q_id + 1]
+            return redirect(f"/questions/{last_q_id + 1}")
 
 
-@app.route("/answer/<q_id>", methods=["POST"])
+@app.route("/answer/<int:q_id>", methods=["POST"])
 def save_answer_and_redirect(q_id):
-    """ Saves the answer to the answer to responses list
-    and redirects the user. """
+    """Saves the answer to the answer to responses list
+    and redirects the user."""
 
-    redirect_id = int(q_id) + 1
+    redirect_id = q_id + 1
     if redirect_id >= len(survey.questions):
         return redirect("/thankyou")
     else:
-        responses.append(request.form.get("answer"))
+        save_to_session("answered", q_id)
+        save_to_session("responses", request.form.get("answer"))
         return redirect(f"/questions/{redirect_id}")
 
 
 @app.route("/thankyou")
 def show_thanks():
     return render_template("completion.html")
+
+
+def save_to_session(key, value):
+    """ Helper function for rebinding session responses """
+    data_list = session[key]
+    data_list.append(value)
+    session[key] = data_list
