@@ -42,13 +42,15 @@ def show_question(q_id):
             "question.html", q_id=q_id, question=q.question, choices=q.choices
         )
     else:
-        # check if the last question has been answered or is the last survey question
-        last_q_id = session["answered"][-1]
-        if last_q_id >= len(survey.questions) - 1 and last_q_id in session["answered"]:
+        # check if the last question has been answered
+        last_answered_id = session["answered"][-1]
+        final_question_id = len(survey.questions)-1
+        if final_question_id in session["answered"]:
             return redirect("/thankyou")
         else:
-            q = survey.questions[last_q_id + 1]
-            return redirect(f"/questions/{last_q_id + 1}")
+            next_q_id = last_answered_id + 1
+            q = survey.questions[next_q_id]
+            return redirect(f"/questions/{next_q_id}")
 
 
 @app.route("/answer/<int:q_id>", methods=["POST"])
@@ -56,12 +58,13 @@ def save_answer_and_redirect(q_id):
     """Saves the answer to the answer to responses list
     and redirects the user."""
 
+    save_to_session("answered", q_id)
+    save_to_session("responses", request.form.get("answer"))
+
     redirect_id = q_id + 1
     if redirect_id >= len(survey.questions):
         return redirect("/thankyou")
     else:
-        save_to_session("answered", q_id)
-        save_to_session("responses", request.form.get("answer"))
         return redirect(f"/questions/{redirect_id}")
 
 
